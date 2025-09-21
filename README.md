@@ -3,6 +3,8 @@
 A modern, full-stack employee management system built with **Next.js** for frontend and **Go** for backend.
 
 [Live Demo](https://manage-employee-next-go.vercel.app)
+Email: firdaus@g.com
+Password: 1234
 
 ---
 
