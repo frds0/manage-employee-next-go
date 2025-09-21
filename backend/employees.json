@@ -5,5 +5,19 @@
     "jabatan": "Staff IT",
     "email": "jajang@g.com",
     "no_telp": "031231230131"
+  },
+  {
+    "id": 2,
+    "nama": "Risa",
+    "jabatan": "Human Resources",
+    "email": "risa@g.com",
+    "no_telp": "0088371231313"
+  },
+  {
+    "id": 3,
+    "nama": "Dauss",
+    "jabatan": "Staff IT",
+    "email": "daus@g.com",
+    "no_telp": "083182321301"
   }
 ]

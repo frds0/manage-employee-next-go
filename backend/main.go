@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	// "errors"
 	"log"
 	"net/http"
 	"os"
@@ -19,7 +18,6 @@ var (
 	jwtKey    = []byte("REPLACE_WITH_STRONG_SECRET")
 )
 
-// User represents a stored user
 type User struct {
 	ID       int    `json:"id"`
 	Email    string `json:"email"`
@@ -48,10 +46,15 @@ type Employee struct {
 	NoTelp  string `json:"no_telp"`
 }
 
-func enableCors(w *http.ResponseWriter) {
-	(*w).Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
-	(*w).Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+func enableCors(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 }
 
 func (s *Store) load() error {
@@ -81,7 +84,51 @@ func (s *Store) save() error {
 	return os.WriteFile(usersFile, b, 0644)
 }
 
+func getEmployeesHandler(w http.ResponseWriter, r *http.Request) {
+	enableCors(w, r)
+	w.Header().Set("Content-Type", "application/json")
+
+	data, err := os.ReadFile("employees.json")
+	if err != nil {
+		http.Error(w, "Failed to read file", http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(data)
+}
+
+func getEmployeeIDHandler(w http.ResponseWriter, r *http.Request) {
+	enableCors(w, r)
+	w.Header().Set("Content-Type", "application/json")
+
+	idStr := strings.TrimPrefix(r.URL.Path, "/employee/")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+
+	data, err := os.ReadFile("employees.json")
+	if err != nil {
+		http.Error(w, "Failed to read file", http.StatusInternalServerError)
+		return
+	}
+
+	var employees []Employee
+	_ = json.Unmarshal(data, &employees)
+
+	for _, emp := range employees {
+		if emp.ID == id {
+			json.NewEncoder(w).Encode(emp)
+			return
+		}
+	}
+
+	http.Error(w, "Employee not found", http.StatusNotFound)
+}
+
 func addEmployeeHandler(w http.ResponseWriter, r *http.Request) {
+	enableCors(w, r)
 	var employee Employee
 
 	// Decode body request
@@ -111,36 +158,39 @@ func addEmployeeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateEmployeeHandler(w http.ResponseWriter, r *http.Request) {
+	enableCors(w, r)
+
+	if r.Method == http.MethodOptions {
+		return // langsung keluar kalau preflight
+	}
+
 	if r.Method != http.MethodPut {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	// Ambil ID dari URL
-	idStr := strings.TrimPrefix(r.URL.Path, "/employee/")
+	idStr := strings.TrimPrefix(r.URL.Path, "/employee/update/")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		http.Error(w, "Invalid ID", http.StatusBadRequest)
 		return
 	}
 
-	// Decode data baru
 	var updated Employee
 	if err := json.NewDecoder(r.Body).Decode(&updated); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	// Baca file employees.json
 	file, _ := os.ReadFile("employees.json")
 	var employees []Employee
 	json.Unmarshal(file, &employees)
 
-	// Cari employee berdasarkan ID
 	found := false
 	for i, emp := range employees {
 		if emp.ID == id {
-			// Update hanya field yang tidak kosong
+
 			if updated.Nama != "" {
 				employees[i].Nama = updated.Nama
 			}
@@ -164,11 +214,9 @@ func updateEmployeeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Tulis kembali ke file
 	data, _ := json.MarshalIndent(employees, "", "  ")
 	_ = os.WriteFile("employees.json", data, 0644)
 
-	// Response
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
 		"message": "Employee updated successfully",
@@ -176,20 +224,19 @@ func updateEmployeeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteEmployeeHandler(w http.ResponseWriter, r *http.Request) {
+	enableCors(w, r)
 	if r.Method != http.MethodDelete {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Ambil ID dari URL
-	idStr := strings.TrimPrefix(r.URL.Path, "/employee/")
+	idStr := strings.TrimPrefix(r.URL.Path, "/employee/delete/")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		http.Error(w, "Invalid ID", http.StatusBadRequest)
 		return
 	}
 
-	// Baca file employees.json
 	file, err := os.ReadFile("employees.json")
 	if err != nil {
 		http.Error(w, "Cannot read file", http.StatusInternalServerError)
@@ -202,13 +249,12 @@ func deleteEmployeeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Cari dan hapus employee
 	found := false
 	newEmployees := []Employee{}
 	for _, emp := range employees {
 		if emp.ID == id {
 			found = true
-			continue // skip employee yang ingin dihapus
+			continue
 		}
 		newEmployees = append(newEmployees, emp)
 	}
@@ -218,14 +264,12 @@ func deleteEmployeeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Tulis kembali ke file
 	data, _ := json.MarshalIndent(newEmployees, "", "  ")
 	if err := os.WriteFile("employees.json", data, 0644); err != nil {
 		http.Error(w, "Failed to write file", http.StatusInternalServerError)
 		return
 	}
 
-	// Response
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
 		"message": "Employee deleted successfully",
@@ -239,7 +283,7 @@ func main() {
 	}
 
 	http.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
-		enableCors(&w)
+		enableCors(w, r)
 
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusOK)
@@ -251,7 +295,6 @@ func main() {
 			return
 		}
 
-		// decode request
 		var creds User
 		if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -272,21 +315,17 @@ func main() {
 			newID = lastUser.ID + 1
 		}
 
-		// Tambahkan user baru
 		newUser := User{
 			ID:       newID,
 			Email:    creds.Email,
 			Password: creds.Password,
 		}
 
-		// Tambah user baru
 		data.Users = append(data.Users, newUser)
 
-		// Simpan ke file
 		bytes, _ := json.MarshalIndent(data, "", "  ")
 		_ = os.WriteFile("users.json", bytes, 0644)
 
-		// Response
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{
 			"message": "user registered successfully",
@@ -294,7 +333,7 @@ func main() {
 	})
 
 	http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
-		enableCors(&w)
+		enableCors(w, r)
 
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusOK)
@@ -312,14 +351,12 @@ func main() {
 			return
 		}
 
-		// Baca users.json
 		var data UsersData
 		content, err := os.ReadFile("users.json")
 		if err == nil {
 			_ = json.Unmarshal(content, &data)
 		}
 
-		// Cari user dengan email + password cocok
 		var found *User
 		for _, u := range data.Users {
 			if u.Email == creds.Email && u.Password == creds.Password {
@@ -333,7 +370,6 @@ func main() {
 			return
 		}
 
-		// Buat JWT token
 		expirationTime := time.Now().Add(1 * time.Hour)
 		claims := &Claims{
 			Email: found.Email,
@@ -349,7 +385,6 @@ func main() {
 			return
 		}
 
-		// Response JSON token
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{
 			"token": tokenString,
@@ -357,7 +392,7 @@ func main() {
 	})
 
 	http.HandleFunc("/me", func(w http.ResponseWriter, r *http.Request) {
-		enableCors(&w)
+		enableCors(w, r)
 
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusOK)
@@ -370,7 +405,6 @@ func main() {
 			return
 		}
 
-		// Hapus "Bearer " kalau ada
 		if len(tokenStr) > 7 && tokenStr[:7] == "Bearer " {
 			tokenStr = tokenStr[7:]
 		}
@@ -391,22 +425,12 @@ func main() {
 		})
 	})
 
-	http.HandleFunc("/employee/", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		// case http.MethodGet:
-		//     getEmployeeHandler(w, r) // nanti bisa dibuat untuk GET
-		case http.MethodPost:
-			addEmployeeHandler(w, r) // POST untuk insert
-		case http.MethodPut:
-			updateEmployeeHandler(w, r) // PUT untuk update
-		case http.MethodDelete:
-			deleteEmployeeHandler(w, r) // DELETE untuk hapus
-		default:
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
-	})
+	http.HandleFunc("/employees", getEmployeesHandler)
+	http.HandleFunc("/employee/", getEmployeeIDHandler)
+	http.HandleFunc("/employee/add", addEmployeeHandler)
+	http.HandleFunc("/employee/update/", updateEmployeeHandler)
+	http.HandleFunc("/employee/delete/", deleteEmployeeHandler)
 
-	// serve on :8000
 	log.Println("Server running on :8000")
 	log.Fatal(http.ListenAndServe(":8000", nil))
 }
