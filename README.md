@@ -15,9 +15,6 @@ A modern, full-stack employee management system built with **Next.js** for front
   - [Prerequisites](#prerequisites)  
   - [Installation](#installation)  
   - [Running the App](#running-the-app)  
-- [Project Structure](#project-structure)  
-- [Contributing](#contributing)  
-- [License](#license)  
 
 ---
 
@@ -88,11 +85,11 @@ cd frontend
 npm install    # or yarn install
 
 ```
-# run the frontend
+run the frontend
 ```bash
 npm run dev    # or yarn dev
 ```
-Running the App
+## Running the App
 
 # After both backend & frontend are running:
 
