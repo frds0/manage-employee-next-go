@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:8000";
+const BASE_URL = "https://manage-employee-next-go-production.up.railway.app";
 
 export async function login(email, password) {
     const res = await fetch(`${BASE_URL}/login`, {
