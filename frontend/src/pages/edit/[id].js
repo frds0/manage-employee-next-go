@@ -27,7 +27,7 @@ export default function EditEmployeePage() {
     const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-        const updatedEmployee = { Nama: nama, Jabatan: jabatan, Email: email, NoTelp: no_telp };
+        const updatedEmployee = { nama: nama, jabatan: jabatan, email: email, no_telp: no_telp };
         await updateEmployee(id, updatedEmployee);
         router.push("/employees");
     } catch (err) {
