@@ -17,7 +17,7 @@ export default function CreateEmployeePage() {
     const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-        await createEmployee({ Nama: nama, Jabatan: jabatan, Email: email, NoTelp: no_telp });
+        await createEmployee({ nama: nama, jabatan: jabatan, email: email, no_telp: no_telp });
         alert("Employee created successfully");
         router.push('/employees'); 
     } catch (err) {
