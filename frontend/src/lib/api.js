@@ -52,7 +52,7 @@ export async function getEmployees(){
 }
 
 export async function getEmployeeById(id) {
-    const res = await fetch(`http://localhost:8000/employee/${id}`);
+    const res = await fetch(`${BASE_URL}/employee/${id}`);
     if (!res.ok) throw new Error("Failed to fetch employee");
     return res.json();
 }
@@ -77,7 +77,7 @@ export async function createEmployee(employee) {
 }
 
 export async function updateEmployee(id, employee) {
-    const res = await fetch(`http://localhost:8000/employee/update/${id}`, {
+    const res = await fetch(`${BASE_URL}/employee/update/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(employee),
@@ -87,7 +87,7 @@ export async function updateEmployee(id, employee) {
 }
 
 export async function deleteEmployee(id) {
-    const res = await fetch(`http://localhost:8000/employee/delete/${id}`, {
+    const res = await fetch(`${BASE_URL}/employee/delete/${id}`, {
         method: "DELETE",
     });
     if (!res.ok) throw new Error("Failed to delete employee");
